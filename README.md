@@ -152,8 +152,121 @@ KIOSK_SECRET_KEY=your-secret-key-here
 - [ ] Start Reverb: `php artisan reverb:start` (separate terminal)
 - [ ] Start Laravel: `php artisan serve`
 
-## Additional Documentation
+## Production Deployment & Setup
 
-- **[Features Documentation](FEATURES_DOCUMENTATION.md)** - Complete feature list
-- **[Use Case Scenarios](USE_CASE_SCENARIOS.md)** - Usage scenarios
-- **[Pricing Breakdown](PRICING_BREAKDOWN.md)** - Development costs
+### Step 1: Update from Repository
+
+Run the deployment script to pull latest changes and update dependencies:
+
+```bash
+deploy.bat
+```
+
+This script will:
+- Pull latest changes from git master
+- Install PHP dependencies (Composer)
+- Copy `.env.public` to `.env` (if needed)
+- Generate application key (if needed)
+- Run database migrations
+- Create storage link
+- Install Node.js dependencies
+- Build frontend assets
+- Clear application caches
+
+### Step 2: Configure Apache Virtual Host
+
+**Edit `C:\xampp\apache\conf\extra\httpd-vhosts.conf`** and add:
+
+```apache
+<VirtualHost *:80>
+    ServerAdmin webmaster@queueing.local
+    DocumentRoot "C:/xampp/htdocs/Queueing Cashier/public"
+    ServerName queueing.local
+    ServerAlias 192.168.0.100
+    
+    <Directory "C:/xampp/htdocs/Queueing Cashier/public">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog "logs/queueing.local-error.log"
+    CustomLog "logs/queueing.local-access.log" common
+</VirtualHost>
+```
+
+**Important:** 
+- Replace `192.168.0.100` with your actual server IP address
+- Ensure the path uses forward slashes (`/`) not backslashes (`\`)
+- Update `ServerAlias` to match your server IP
+
+**Enable virtual hosts** in `C:\xampp\apache\conf\httpd.conf`:
+- Ensure this line is uncommented: `Include conf/extra/httpd-vhosts.conf`
+- Restart Apache after making changes
+
+### Step 3: Configure Windows Hosts File
+
+**Edit `C:\Windows\System32\drivers\etc\hosts`** (as Administrator) and add at the end:
+
+```
+192.168.1.100    queueing.local
+192.168.1.100    www.queueing.local
+```
+
+**Important:** 
+- Replace `192.168.1.100` with your actual server IP address
+- **Note:** The IP in hosts file should match the `ServerAlias` in the virtual host configuration (update both to use the same IP)
+- Save the file (you may need to run Notepad as Administrator)
+
+### Step 4: Install Startup Files
+
+Run the installation script to set up auto-start:
+
+```bash
+install-startup.bat
+```
+
+**Run as Administrator** (right-click → Run as administrator)
+
+This will:
+- Copy `start-reverb-background.vbs` to Windows Startup folder
+- Create XAMPP Control Panel shortcut in Startup folder
+- Enable automatic startup of services
+
+**Verify installation:**
+- Press `Win + R`
+- Type: `shell:startup`
+- Check if both files are present
+
+### Step 5: Restart Computer
+
+**Restart your computer.** After restart:
+- XAMPP Control Panel will start automatically
+- Laravel Reverb will start automatically (no security warnings)
+- All services will be ready to use
+
+**Access the application:**
+- From server: `http://queueing.local` or `http://192.168.1.100`
+- From network: `http://192.168.1.100` (replace with your server IP)
+
+### Step 6: Verify Installation
+
+1. **Check Apache:** Open `http://queueing.local` or `http://192.168.1.100` (replace with your server IP)
+2. **Check Reverb:** Verify WebSocket connection in browser console (should connect to `ws://192.168.1.100:8080`)
+3. **Check Services:** Open Task Manager → Check for `php.exe` process running Reverb
+4. **Check Logs:** Verify no errors in Apache error logs: `C:\xampp\apache\logs\queueing.local-error.log`
+
+## Updating the System
+
+To update the system with latest changes from repository:
+
+1. **Run deployment script:**
+   ```bash
+   deploy.bat
+   ```
+
+2. **Restart services** (if needed):
+   - Restart Apache from XAMPP Control Panel
+   - Reverb will restart automatically if using startup script
+
+That's it! The system will be updated with latest code, dependencies, and migrations.
