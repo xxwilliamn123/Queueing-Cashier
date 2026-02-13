@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-bs-theme="blue-theme">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Toastr & SweetAlert2 Demo | Barangay Management System</title>
+  <!--favicon-->
+  <link rel="icon" href="assets/images/favicon-32x32.png" type="image/png">
+  <!-- loader-->
+	<link href="assets/css/pace.min.css" rel="stylesheet">
+	<script src="assets/js/pace.min.js"></script>
+
+  <!--plugins-->
+  <link href="assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="assets/plugins/metismenu/metisMenu.min.css">
+  <link rel="stylesheet" type="text/css" href="assets/plugins/metismenu/mm-vertical.css">
+  <link rel="stylesheet" type="text/css" href="assets/plugins/simplebar/css/simplebar.css">
+  <!--bootstrap css-->
+  <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Material+Icons+Outlined" rel="stylesheet">
+  <!--main css-->
+  <link href="assets/css/bootstrap-extended.css" rel="stylesheet">
+  <link href="assets/sass/main.css" rel="stylesheet">
+  <link href="assets/sass/dark-theme.css" rel="stylesheet">
+  <link href="assets/sass/blue-theme.css" rel="stylesheet">
+  <link href="assets/sass/semi-dark.css" rel="stylesheet">
+  <link href="assets/sass/bordered-theme.css" rel="stylesheet">
+  <link href="assets/sass/responsive.css" rel="stylesheet">
+
+  <link href="assets/toastr/latest/toastr.min.css" rel="stylesheet">
+  <link href="assets/sweetalert2/latest/sweetalert2.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+  <!--start header-->
+  <header class="top-header">
+    <nav class="navbar navbar-expand align-items-center gap-4">
+      <div class="btn-toggle">
+        <a href="javascript:;"><i class="material-icons-outlined">menu</i></a>
+      </div>
+      <div class="search-bar flex-grow-1">
+        <div class="position-relative">
+          <input class="form-control rounded-5 px-5 search-control d-lg-block d-none" type="text" placeholder="Search">
+          <span class="material-icons-outlined position-absolute d-lg-block d-none ms-3 translate-middle-y start-0 top-50">search</span>
+          <span class="material-icons-outlined position-absolute me-3 translate-middle-y end-0 top-50 search-close">close</span>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <!--end header-->
+
+  <!--start page wrapper -->
+  <div class="page-wrapper">
+    <div class="page-content">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <h4 class="mb-4">Toastr & SweetAlert2 Demo</h4>
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <h5>Toastr Notifications</h5>
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="showToastrSuccess()">
+                      <i class="material-icons-outlined">check_circle</i> Success Toast
+                    </button>
+                    <button class="btn btn-danger" onclick="showToastrError()">
+                      <i class="material-icons-outlined">error</i> Error Toast
+                    </button>
+                    <button class="btn btn-warning" onclick="showToastrWarning()">
+                      <i class="material-icons-outlined">warning</i> Warning Toast
+                    </button>
+                    <button class="btn btn-info" onclick="showToastrInfo()">
+                      <i class="material-icons-outlined">info</i> Info Toast
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <h5>SweetAlert2 Modals</h5>
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="showSweetAlertSuccess()">
+                      <i class="material-icons-outlined">check_circle</i> Success Alert
+                    </button>
+                    <button class="btn btn-danger" onclick="showSweetAlertError()">
+                      <i class="material-icons-outlined">error</i> Error Alert
+                    </button>
+                    <button class="btn btn-warning" onclick="showSweetAlertWarning()">
+                      <i class="material-icons-outlined">warning</i> Warning Alert
+                    </button>
+                    <button class="btn btn-info" onclick="showSweetAlertInfo()">
+                      <i class="material-icons-outlined">info</i> Info Alert
+                    </button>
+                    <button class="btn btn-secondary" onclick="showSweetAlertConfirm()">
+                      <i class="material-icons-outlined">help</i> Confirm Dialog
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <hr class="my-4">
+              
+              <div class="row">
+                <div class="col-12">
+                  <h5>Usage Examples</h5>
+                  <div class="alert alert-info">
+                    <h6>Toastr Usage:</h6>
+                    <code>toastr.success('Success message');</code><br>
+                    <code>toastr.error('Error message');</code><br>
+                    <code>toastr.warning('Warning message');</code><br>
+                    <code>toastr.info('Info message');</code>
+                  </div>
+                  
+                  <div class="alert alert-info">
+                    <h6>SweetAlert2 Usage:</h6>
+                    <code>Swal.fire('Success!', 'Operation completed successfully', 'success');</code><br>
+                    <code>Swal.fire('Error!', 'Something went wrong', 'error');</code><br>
+                    <code>Swal.fire('Warning!', 'Please be careful', 'warning');</code><br>
+                    <code>Swal.fire('Info!', 'Here is some information', 'info');</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--end page wrapper -->
+
+  <!--bootstrap js-->
+  <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+  <!--plugins-->
+  <script src="assets/js/jquery.min.js"></script>
+  <!--plugins-->
+  <script src="assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
+  <script src="assets/plugins/metismenu/metisMenu.min.js"></script>
+  <script src="assets/plugins/simplebar/js/simplebar.min.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <script src="assets/toastr/latest/toastr.min.js"></script>
+  <script src="assets/sweetalert2/latest/sweetalert2.all.min.js"></script>
+
+  <script>
+    // Configure toastr options
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": true,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "300",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    };
+
+    // Toastr Functions
+    function showToastrSuccess() {
+      toastr.success('Operation completed successfully!', 'Success');
+    }
+
+    function showToastrError() {
+      toastr.error('Something went wrong!', 'Error');
+    }
+
+    function showToastrWarning() {
+      toastr.warning('Please be careful with this action!', 'Warning');
+    }
+
+    function showToastrInfo() {
+      toastr.info('Here is some information for you!', 'Info');
+    }
+
+    // SweetAlert2 Functions
+    function showSweetAlertSuccess() {
+      Swal.fire({
+        title: 'Success!',
+        text: 'Operation completed successfully!',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+    }
+
+    function showSweetAlertError() {
+      Swal.fire({
+        title: 'Error!',
+        text: 'Something went wrong!',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+    }
+
+    function showSweetAlertWarning() {
+      Swal.fire({
+        title: 'Warning!',
+        text: 'Please be careful with this action!',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+    }
+
+    function showSweetAlertInfo() {
+      Swal.fire({
+        title: 'Info!',
+        text: 'Here is some information for you!',
+        icon: 'info',
+        confirmButtonText: 'OK'
+      });
+    }
+
+    function showSweetAlertConfirm() {
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire(
+            'Deleted!',
+            'Your file has been deleted.',
+            'success'
+          );
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
