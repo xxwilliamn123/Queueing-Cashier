@@ -59,6 +59,24 @@
             <x-input-error for="name" class="mt-2" />
         </div>
 
+        <!-- Theme -->
+        <div class="col-span-6 sm:col-span-4">
+            <x-label for="theme" value="{{ __('Theme') }}" />
+            <select id="theme" wire:model="state.theme" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm form-select">
+                @foreach (\App\Actions\Fortify\UpdateUserProfileInformation::ALLOWED_THEMES as $themeValue)
+                    <option value="{{ $themeValue }}">{{ match ($themeValue) {
+                        'blue-theme' => __('Blue'),
+                        'light' => __('Light'),
+                        'dark' => __('Dark'),
+                        'semi-dark' => __('Semi dark'),
+                        'bodered-theme' => __('Bordered'),
+                        default => $themeValue,
+                    } }}</option>
+                @endforeach
+            </select>
+            <x-input-error for="theme" class="mt-2" />
+        </div>
+
         <!-- Email -->
         <div class="col-span-6 sm:col-span-4">
             <x-label for="email" value="{{ __('Email') }}" />

@@ -32,6 +32,7 @@ class User extends Authenticatable
         'role',
         'category_id',
         'counter_name',
+        'theme',
     ];
 
     /**
