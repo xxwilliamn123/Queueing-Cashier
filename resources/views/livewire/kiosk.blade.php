@@ -208,6 +208,161 @@
     @push('scripts')
         <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
         <script>
+            // Auto fullscreen behavior (same pattern as display monitor)
+            if (!window.kioskFullscreenInitialized) {
+                window.kioskFullscreenInitialized = true;
+
+                let fullscreenEnabled = false;
+                let interactionHandlers = [];
+                let reenterFullscreenTimeout = null;
+                let fullscreenCheckInterval = null;
+
+                function requestFullscreen() {
+                    const element = document.documentElement;
+
+                    if (element.requestFullscreen) {
+                        return element.requestFullscreen().then(() => {
+                            fullscreenEnabled = true;
+                            return true;
+                        }).catch(() => {
+                            fullscreenEnabled = false;
+                            return false;
+                        });
+                    } else if (element.webkitRequestFullscreen) {
+                        element.webkitRequestFullscreen();
+                        fullscreenEnabled = true;
+                        return Promise.resolve(true);
+                    } else if (element.webkitRequestFullScreen) {
+                        element.webkitRequestFullScreen();
+                        fullscreenEnabled = true;
+                        return Promise.resolve(true);
+                    } else if (element.mozRequestFullScreen) {
+                        element.mozRequestFullScreen();
+                        fullscreenEnabled = true;
+                        return Promise.resolve(true);
+                    } else if (element.msRequestFullscreen) {
+                        element.msRequestFullscreen();
+                        fullscreenEnabled = true;
+                        return Promise.resolve(true);
+                    }
+
+                    return Promise.reject('Fullscreen not supported');
+                }
+
+                function isFullscreen() {
+                    return !!(
+                        document.fullscreenElement ||
+                        document.webkitFullscreenElement ||
+                        document.mozFullScreenElement ||
+                        document.msFullscreenElement
+                    );
+                }
+
+                function enableFullscreenOnInteraction() {
+                    interactionHandlers.forEach(({ event, handler }) => {
+                        document.removeEventListener(event, handler);
+                    });
+                    interactionHandlers = [];
+
+                    const handler = function() {
+                        if (!isFullscreen()) {
+                            requestFullscreen().then((success) => {
+                                if (success) {
+                                    onFullscreenEntered();
+                                    interactionHandlers.forEach(({ event, handler: existingHandler }) => {
+                                        document.removeEventListener(event, existingHandler);
+                                    });
+                                    interactionHandlers = [];
+                                }
+                            });
+                        }
+                    };
+
+                    const events = ['click', 'touchstart', 'keydown'];
+                    events.forEach((event) => {
+                        document.addEventListener(event, handler, { once: false });
+                        interactionHandlers.push({ event, handler });
+                    });
+                }
+
+                function scheduleReenterFullscreen() {
+                    if (reenterFullscreenTimeout) {
+                        clearTimeout(reenterFullscreenTimeout);
+                    }
+
+                    reenterFullscreenTimeout = setTimeout(() => {
+                        if (!isFullscreen()) {
+                            requestFullscreen().catch(() => {
+                                enableFullscreenOnInteraction();
+                            });
+                        }
+                    }, 5000);
+                }
+
+                function startFullscreenMonitor() {
+                    if (fullscreenCheckInterval) {
+                        clearInterval(fullscreenCheckInterval);
+                    }
+
+                    fullscreenCheckInterval = setInterval(() => {
+                        if (!isFullscreen()) {
+                            requestFullscreen().catch(() => {
+                                enableFullscreenOnInteraction();
+                            });
+                        }
+                    }, 2000);
+                }
+
+                function onFullscreenEntered() {
+                    fullscreenEnabled = true;
+                    startFullscreenMonitor();
+                }
+
+                document.addEventListener('fullscreenchange', () => {
+                    if (isFullscreen()) {
+                        onFullscreenEntered();
+                        if (reenterFullscreenTimeout) {
+                            clearTimeout(reenterFullscreenTimeout);
+                            reenterFullscreenTimeout = null;
+                        }
+                    } else {
+                        fullscreenEnabled = false;
+                        scheduleReenterFullscreen();
+                        startFullscreenMonitor();
+                    }
+                });
+
+                document.addEventListener('webkitfullscreenchange', () => {
+                    if (isFullscreen()) {
+                        onFullscreenEntered();
+                        if (reenterFullscreenTimeout) {
+                            clearTimeout(reenterFullscreenTimeout);
+                            reenterFullscreenTimeout = null;
+                        }
+                    } else {
+                        fullscreenEnabled = false;
+                        scheduleReenterFullscreen();
+                        startFullscreenMonitor();
+                    }
+                });
+
+                document.addEventListener('mozfullscreenchange', () => {
+                    if (isFullscreen()) {
+                        onFullscreenEntered();
+                        if (reenterFullscreenTimeout) {
+                            clearTimeout(reenterFullscreenTimeout);
+                            reenterFullscreenTimeout = null;
+                        }
+                    } else {
+                        fullscreenEnabled = false;
+                        scheduleReenterFullscreen();
+                        startFullscreenMonitor();
+                    }
+                });
+
+                enableFullscreenOnInteraction();
+            }
+
             // Category selection handled purely in JavaScript
             let selectedCategoryId = null;
 
