@@ -8,6 +8,7 @@ use App\Events\TicketRecalled;
 use App\Models\Serving;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -62,40 +63,52 @@ class MyQueue extends Component
             return;
         }
 
-        // Check if there's already a ticket being served by this teller
-        $existingServing = Ticket::forCategory($user->category_id)
-            ->forToday()
-            ->serving()
-            ->where('teller_id', $user->id)
-            ->first();
-        
-        if ($existingServing) {
-            $this->dispatch('toastr', ['type' => 'error', 'message' => 'Please complete or skip the current ticket first']);
+        $result = DB::transaction(function () use ($user) {
+            // Lock teller's serving row check to avoid duplicate serving states.
+            $existingServing = Ticket::forCategory($user->category_id)
+                ->forToday()
+                ->serving()
+                ->where('teller_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingServing) {
+                return ['error' => 'Please complete or skip the current ticket first'];
+            }
+
+            // Lock next waiting ticket so two tellers can't take the same row.
+            /** @var Ticket|null $nextTicket */
+            $nextTicket = Ticket::forCategory($user->category_id)
+                ->forToday()
+                ->waiting()
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$nextTicket) {
+                return ['error' => 'No waiting tickets'];
+            }
+
+            $nextTicket->update([
+                'status' => 'serving',
+                'teller_id' => $user->id,
+            ]);
+
+            Serving::create([
+                'ticket_id' => $nextTicket->id,
+                'teller_id' => $user->id,
+                'started_at' => now(),
+            ]);
+
+            return ['ticket_id' => $nextTicket->id];
+        }, 3);
+
+        if (!empty($result['error'])) {
+            $this->dispatch('toastr', ['type' => 'error', 'message' => $result['error']]);
             return;
         }
 
-        $ticket = Ticket::forCategory($user->category_id)
-            ->forToday()
-            ->waiting()
-            ->with('category:id,name,prefix')
-            ->orderBy('id', 'asc')
-            ->first();
-
-        if (!$ticket) {
-            $this->dispatch('toastr', ['type' => 'error', 'message' => 'No waiting tickets']);
-            return;
-        }
-
-        $ticket->update([
-            'status' => 'serving',
-            'teller_id' => $user->id,
-        ]);
-
-        Serving::create([
-            'ticket_id' => $ticket->id,
-            'teller_id' => $user->id,
-            'started_at' => now(),
-        ]);
+        $ticket = Ticket::with('category:id,name,prefix')->find($result['ticket_id']);
 
         // Reload ticket with relationships before broadcasting
         $ticket = $ticket->fresh(['category', 'teller']);

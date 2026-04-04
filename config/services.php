@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'fastapi_print' => [
+        'enabled' => env('FASTAPI_PRINT_ENABLED', true),
+        'base_url' => env('FASTAPI_PRINT_BASE_URL', 'http://127.0.0.1:8000'),
+        'timeout' => env('FASTAPI_PRINT_TIMEOUT', 5),
+    ],
+
 ];

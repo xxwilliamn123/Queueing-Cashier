@@ -19,6 +19,9 @@
 /storage/*.key
 /storage/pail
 /vendor
+/fastapi/.venv/
+/fastapi/.env
+/fastapi/__pycache__/
 Homestead.json
 Homestead.yaml
 Thumbs.db

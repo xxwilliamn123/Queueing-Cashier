@@ -1,8 +1,8 @@
 <div>
     <!-- Secret Key Entry Form -->
     @if(!$isKeyVerified)
-    <div class="container mt-5">
-        <div class="row justify-content-center">
+    <div class="container min-vh-100 d-flex align-items-center">
+        <div class="row justify-content-center w-100">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
@@ -63,8 +63,8 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="mb-0">NORSU-GUIHULNGAN Queue System</h3>
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3 class="mb-0">NORSU-GUIHULNGAN CASHIER KIOSK</h3>
                     </div>
                     <div class="card-body">
                         <h5 class="mb-4">Select Ticket Type</h5>

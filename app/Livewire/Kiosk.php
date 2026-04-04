@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Events\TicketCreated;
+use App\Services\FastApiPrinterService;
 use App\Models\TellerCategory;
 use App\Services\TicketService;
 use Livewire\Attributes\Layout;
@@ -86,6 +87,14 @@ class Kiosk extends Component
         $this->generatedTicket = $ticket;
         $this->showTicketModal = true;
         $this->selectedCategory = null;
+
+        // Print via separate FastAPI service without blocking user response.
+        if (config('services.fastapi_print.enabled')) {
+            $ticketId = $ticket->id;
+            app()->terminating(function () use ($ticketId) {
+                app(FastApiPrinterService::class)->printTicketById($ticketId);
+            });
+        }
         
         // Clear category cache after ticket creation
         cache()->forget('kiosk_categories');
