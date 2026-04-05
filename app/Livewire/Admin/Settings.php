@@ -13,11 +13,21 @@ class Settings extends Component
 {
     use WithFileUploads;
 
+    /** @var list<string> */
+    public const ALLOWED_THEMES = [
+        'blue-theme',
+        'light',
+        'dark',
+        'semi-dark',
+        'bodered-theme',
+    ];
+
     public $displayVideoUrl = '';
     public $displayMarqueeText = '';
     public $videoFile = null;
     public $useVideoFile = false;
     public $currentVideoPath = null;
+    public $appTheme = 'blue-theme';
 
     public function mount()
     {
@@ -25,12 +35,18 @@ class Settings extends Component
         $this->displayMarqueeText = SettingsModel::get('display_marquee_text', env('DISPLAY_MARQUEE_TEXT', 'Welcome to NORSU-GUIHULNGAN Queue System. Please wait for your number to be called.'));
         $this->currentVideoPath = SettingsModel::get('display_video_file', null);
         $this->useVideoFile = !empty($this->currentVideoPath);
+
+        $storedTheme = SettingsModel::get('app_theme', 'blue-theme');
+        $this->appTheme = in_array($storedTheme, self::ALLOWED_THEMES, true)
+            ? $storedTheme
+            : 'blue-theme';
     }
 
     protected $rules = [
         'displayVideoUrl' => 'nullable|url|max:500',
         'displayMarqueeText' => 'required|string|max:500',
         'videoFile' => 'nullable|mimes:mp4,webm,ogg|max:51200', // 50MB max (supports 18.6MB files)
+        'appTheme' => 'required|in:blue-theme,light,dark,semi-dark,bodered-theme',
     ];
 
     public function save()
@@ -64,6 +80,7 @@ class Settings extends Component
 
         // Save marquee text
         SettingsModel::set('display_marquee_text', $this->displayMarqueeText, 'text');
+        SettingsModel::set('app_theme', $this->appTheme, 'text');
 
         $this->dispatch('toastr', ['type' => 'success', 'message' => 'Settings saved successfully!']);
     }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="{{ auth()->check() && auth()->user()->theme ? auth()->user()->theme : 'blue-theme' }}">
+<html lang="en" data-bs-theme="{{ \App\Models\Settings::get('app_theme', 'blue-theme') }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">

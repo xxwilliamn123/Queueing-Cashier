@@ -18,6 +18,32 @@
             <h5 class="mb-4">Display Monitor Settings</h5>
 
             <form wire:submit.prevent="save">
+                <!-- App Theme -->
+                <div class="mb-4">
+                    <label for="appTheme" class="form-label fw-bold">Application Theme</label>
+                    <select
+                        id="appTheme"
+                        class="form-select @error('appTheme') is-invalid @enderror"
+                        wire:model="appTheme">
+                        @foreach (\App\Livewire\Admin\Settings::ALLOWED_THEMES as $themeValue)
+                            <option value="{{ $themeValue }}">{{ match ($themeValue) {
+                                'blue-theme' => __('Blue'),
+                                'light' => __('Light'),
+                                'dark' => __('Dark'),
+                                'semi-dark' => __('Semi dark'),
+                                'bodered-theme' => __('Bordered'),
+                                default => $themeValue,
+                            } }}</option>
+                        @endforeach
+                    </select>
+                    @error('appTheme')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <small class="text-secondary">This theme applies to all users globally.</small>
+                </div>
+
+                <hr class="my-4">
+
                 <!-- Marquee Text -->
                 <div class="mb-4">
                     <label for="displayMarqueeText" class="form-label fw-bold">Marquee Text</label>
