@@ -1,8 +1,13 @@
 import os
 import tempfile
+from pathlib import Path
 from typing import List, Optional
 
+from dotenv import load_dotenv
+
 import usb.backend.libusb1
+
+load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
 from escpos.printer import Usb
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware

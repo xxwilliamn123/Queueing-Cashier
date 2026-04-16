@@ -92,7 +92,7 @@
                             @error('displayVideoUrl') 
                                 <div class="invalid-feedback">{{ $message }}</div> 
                             @enderror
-                            <small class="text-secondary">Supports YouTube URLs (watch?v=, youtu.be/, or embed format)</small>
+                            <small class="text-secondary">Accepted YouTube links: watch (`youtube.com/watch?v=`), short (`youtu.be/`), and embed (`youtube.com/embed/`).</small>
                         </div>
                         @endif
                     </div>
@@ -113,45 +113,73 @@
                             </label>
                         </div>
                         @if($useVideoFile)
-                        <div class="mt-2 ms-4">
-                            <input 
-                                type="file" 
-                                class="form-control @error('videoFile') is-invalid @enderror" 
-                                id="videoFile" 
-                                wire:model="videoFile" 
-                                accept="video/mp4,video/webm,video/ogg">
-                            @error('videoFile') 
-                                <div class="invalid-feedback">{{ $message }}</div> 
-                            @enderror
-                            <small class="text-secondary">Supported formats: MP4, WebM, OGG (Max: 50MB)</small>
-                            
-                            @if($currentVideoPath)
+                        <div class="mt-2 ps-4" wire:loading.remove wire:target="videoFile">
+                            @if($currentVideoPath || $videoFile)
                             <div class="mt-2">
-                                <div class="alert alert-info d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <i class="material-icons-outlined me-2">video_file</i>
-                                        <span>Current video: {{ basename($currentVideoPath) }}</span>
-                                    </div>
+                                <div class="alert alert-info d-flex align-items-center justify-content-between mb-0">
+                                    <span class="text-truncate pe-3">
+                                        {{ $currentVideoPath ? basename($currentVideoPath) : $videoFile->getClientOriginalName() }}
+                                    </span>
+                                    @if($currentVideoPath)
                                     <button 
                                         type="button" 
-                                        class="btn btn-sm btn-danger" 
+                                        class="btn btn-danger px-3 raised d-flex align-items-center gap-2"
                                         wire:click="deleteVideoFile"
                                         wire:confirm="Are you sure you want to delete this video file?">
-                                        <i class="material-icons-outlined">delete</i> Delete
+                                        <i class="material-icons-outlined">delete</i>
+                                        <span>Remove file</span>
                                     </button>
+                                    @else
+                                    <button
+                                        type="button"
+                                        class="btn btn-danger px-3 raised d-flex align-items-center gap-2"
+                                        wire:click="$set('videoFile', null)">
+                                        <i class="material-icons-outlined">delete</i>
+                                        <span>Remove file</span>
+                                    </button>
+                                    @endif
                                 </div>
                             </div>
-                            @endif
-
-                            @if($videoFile)
-                            <div class="mt-2">
-                                <div class="alert alert-warning">
-                                    <i class="material-icons-outlined me-2">info</i>
-                                    <span>New file selected: {{ $videoFile->getClientOriginalName() }}</span>
-                                </div>
+                            @else
+                            <div
+                                class="position-relative border border-2 border-secondary-subtle rounded-3 p-4 text-center bg-light overflow-hidden">
+                                <input 
+                                    type="file" 
+                                    class="position-absolute top-0 start-0 w-100 h-100 opacity-0 @error('videoFile') is-invalid @enderror"
+                                    style="cursor: pointer;"
+                                    id="videoFile" 
+                                    wire:model="videoFile" 
+                                    wire:loading.attr="disabled"
+                                    wire:target="videoFile"
+                                    accept="video/mp4,video/webm,video/ogg">
+                                <i class="material-icons-outlined mb-2" style="font-size: 2rem;">cloud_upload</i>
+                                <p class="mb-1 fw-semibold">Drag and drop your video file here</p>
+                                <p class="text-secondary small mb-0">or click to browse</p>
                             </div>
+                            @error('videoFile') 
+                                <div class="text-danger small mt-2">{{ $message }}</div> 
+                            @enderror
+                            <small class="text-secondary">Supported formats: MP4, WebM, OGG (Max: 3GB)</small>
                             @endif
                         </div>
+
+                        @if(!$currentVideoPath && !$videoFile)
+                        <div class="mt-2 ps-4" wire:loading.block wire:target="videoFile">
+                            <div class="border border-2 border-secondary-subtle rounded-3 p-4 bg-light">
+                                <div class="placeholder-glow mb-3">
+                                    <span class="placeholder w-100"></span>
+                                    <span class="placeholder w-75"></span>
+                                </div>
+                                <div class="placeholder-glow mb-2">
+                                    <span class="placeholder w-100" style="height: 2.75rem;"></span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 text-secondary small">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span>Uploading temporary file...</span>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         @endif
                     </div>
                 </div>

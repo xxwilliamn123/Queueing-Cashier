@@ -45,7 +45,7 @@ class Settings extends Component
     protected $rules = [
         'displayVideoUrl' => 'nullable|url|max:500',
         'displayMarqueeText' => 'required|string|max:500',
-        'videoFile' => 'nullable|mimes:mp4,webm,ogg|max:51200', // 50MB max (supports 18.6MB files)
+        'videoFile' => 'nullable|mimes:mp4,webm,ogg|max:3145728', // 3GB max (supports 18.6MB files)
         'appTheme' => 'required|in:blue-theme,light,dark,semi-dark,bodered-theme',
     ];
 

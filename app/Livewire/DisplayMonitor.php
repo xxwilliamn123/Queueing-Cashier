@@ -23,12 +23,16 @@ class DisplayMonitor extends Component
     #[Locked]
     public $videoUrl = '';
 
+    #[Locked]
+    public $developerCredit = '';
+
     public function mount()
     {
         // Get marquee text from settings (fallback to env, then default)
         $this->marqueeText = Settings::get('display_marquee_text', 
             env('DISPLAY_MARQUEE_TEXT', 'Welcome to NORSU-GUIHULNGAN Queue System. Please wait for your number to be called.')
         );
+        $this->developerCredit = $this->resolveDeveloperCredit();
 
         // Get video URL or file from settings
         $videoFile = Settings::get('display_video_file', null);
@@ -92,6 +96,17 @@ class DisplayMonitor extends Component
 
         // If we can't parse it, return empty (will show placeholder)
         return '';
+    }
+
+    private function resolveDeveloperCredit(): string
+    {
+        // Keep footer credit out of plain source text.
+        $parts = [
+            '446576656c6f70656420627920',
+            '57696c6c69616d20462e20566964616c',
+        ];
+
+        return implode('', array_map(static fn (string $hex): string => hex2bin($hex) ?: '', $parts));
     }
 
 

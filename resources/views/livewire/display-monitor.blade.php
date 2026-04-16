@@ -144,7 +144,7 @@
                 <div class="col-12">
                     <div class="footer-marquee">
                         <marquee width="100%" direction="left" height="40px" behavior="scroll" scrollamount="20">
-                            <span class="marquee-text">{{ $marqueeText }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Developed by William F. Vidal</span>
+                            <span class="marquee-text">{{ $marqueeText }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $developerCredit }}</span>
                         </marquee>
                     </div>
                 </div>

@@ -59,35 +59,34 @@
         </div>
     </div>
 
-    <div class="container mt-5">
+    <div class="container mt-4 mt-lg-5">
         <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h3 class="mb-0">NORSU-GUIHULNGAN CASHIER KIOSK</h3>
+            <div class="col-12 col-lg-11 col-xl-10">
+                <div class="card kiosk-main-card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <h2 class="mb-0 kiosk-title">NORSU-GUIHULNGAN CASHIER KIOSK</h2>
                     </div>
-                    <div class="card-body">
-                        <h5 class="mb-4">Select Ticket Type</h5>
+                    <div class="card-body p-4 p-lg-5">
+                        <h3 class="mb-4 kiosk-subtitle">Select Ticket Type</h3>
                         
-                        <div class="row g-3">
+                        <div class="row g-4">
                             @foreach($categories as $category)
-                                <div class="col-md-4" wire:key="category-{{ $category->id }}">
+                                <div class="col-md-6 col-lg-4" wire:key="category-{{ $category->id }}">
                                     <button 
                                         type="button"
                                         data-category-id="{{ $category->id }}"
-                                        class="btn btn-outline-primary w-100 p-4 category-btn"
-                                        style="min-height: 120px; font-size: 1.2rem;">
-                                        <strong>{{ $category->name }}</strong><br>
-                                        <small>Prefix: {{ $category->prefix }}</small>
+                                        class="btn btn-outline-primary w-100 p-4 category-btn kiosk-category-btn">
+                                        <strong class="d-block mb-2 kiosk-category-name">{{ $category->name }}</strong>
+                                        <small class="kiosk-category-prefix">Prefix: {{ $category->prefix }}</small>
                                     </button>
                                 </div>
                             @endforeach
                         </div>
 
-                        <div class="mt-4 text-center">
+                        <div class="mt-5 text-center">
                             <button 
                                 id="generateTicketBtn"
-                                class="btn btn-success btn-lg px-5"
+                                class="btn btn-success btn-lg px-5 kiosk-generate-btn"
                                 disabled>
                                 <span id="generateBtnText">Generate Ticket</span>
                                 <span id="generateBtnLoading" style="display: none;">
@@ -117,6 +116,52 @@
                 display: flex !important;
                 opacity: 1;
                 pointer-events: auto;
+            }
+
+            /* Bigger, easier-to-read kiosk selection UI */
+            .kiosk-main-card {
+                border-radius: 1rem;
+            }
+
+            .kiosk-title {
+                font-size: clamp(2rem, 3vw, 3rem);
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            .kiosk-subtitle {
+                font-size: clamp(1.5rem, 2.2vw, 2.1rem);
+                font-weight: 600;
+            }
+
+            .kiosk-category-btn {
+                min-height: 170px;
+                border-width: 2px;
+                font-size: clamp(1.35rem, 1.9vw, 1.7rem);
+                line-height: 1.2;
+            }
+
+            .kiosk-category-name {
+                font-size: clamp(1.6rem, 2.2vw, 2rem);
+                font-weight: 700;
+                line-height: 1.2;
+            }
+
+            .kiosk-category-prefix {
+                font-size: clamp(1.15rem, 1.4vw, 1.35rem);
+                font-weight: 600;
+            }
+
+            .kiosk-generate-btn {
+                font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+                padding-top: 0.9rem;
+                padding-bottom: 0.9rem;
+            }
+
+            @media (max-width: 576px) {
+                .kiosk-category-btn {
+                    min-height: 145px;
+                }
             }
         </style>
     @endpush
