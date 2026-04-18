@@ -17,12 +17,17 @@
                         <form wire:submit.prevent="verifyKey">
                             <div class="mb-3">
                                 <label for="secretKey" class="form-label">Secret Key</label>
-                                <input type="password" 
-                                       class="form-control @error('secretKey') is-invalid @enderror" 
-                                       id="secretKey" 
-                                       wire:model="secretKey" 
-                                       placeholder="Enter secret key"
-                                       autofocus>
+                                <div class="input-group" id="show_hide_secret_key">
+                                    <input type="password" 
+                                           class="form-control border-end-0 @error('secretKey') is-invalid @enderror" 
+                                           id="secretKey" 
+                                           wire:model="secretKey" 
+                                           placeholder="Enter secret key"
+                                           autofocus>
+                                    <a href="javascript:;" class="input-group-text bg-transparent">
+                                        <i class="bi bi-eye-slash-fill"></i>
+                                    </a>
+                                </div>
                                 @error('secretKey')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -253,6 +258,35 @@
     @push('scripts')
         <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
         <script>
+            if (!window.kioskSecretToggleInitialized) {
+                window.kioskSecretToggleInitialized = true;
+
+                document.addEventListener('click', function (event) {
+                    const toggleBtn = event.target.closest('#show_hide_secret_key a');
+                    if (!toggleBtn) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const wrapper = document.getElementById('show_hide_secret_key');
+                    const input = wrapper ? wrapper.querySelector('input') : null;
+                    const icon = wrapper ? wrapper.querySelector('i') : null;
+                    if (!input || !icon) {
+                        return;
+                    }
+
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('bi-eye-slash-fill');
+                        icon.classList.add('bi-eye-fill');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('bi-eye-fill');
+                        icon.classList.add('bi-eye-slash-fill');
+                    }
+                });
+            }
+
             // Auto fullscreen behavior (same pattern as display monitor)
             if (!window.kioskFullscreenInitialized) {
                 window.kioskFullscreenInitialized = true;

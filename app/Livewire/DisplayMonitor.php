@@ -102,8 +102,8 @@ class DisplayMonitor extends Component
     {
         // Keep footer credit out of plain source text.
         $parts = [
-            '446576656c6f70656420627920',
-            '57696c6c69616d20462e20566964616c',
+            '446576656c6f70656420756e646572207468652061646d696e697374726174696f6e206f662044722e205269636861726420422e204f73756d6f2c',
+            '2043616d707573204469726563746f722c20616e6420486f6e2e204e6f656c204d61726a6f6e20452e20596173692c205073792e442e2c20556e697665727369747920507265736964656e742e',
         ];
 
         return implode('', array_map(static fn (string $hex): string => hex2bin($hex) ?: '', $parts));
