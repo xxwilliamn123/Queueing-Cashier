@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\DisplayVideoVolumeUpdated;
 use App\Models\Settings as SettingsModel;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Storage;
 
 #[Layout('layouts.app')]
 class Settings extends Component
@@ -23,23 +24,33 @@ class Settings extends Component
     ];
 
     public $displayVideoUrl = '';
+
     public $displayMarqueeText = '';
+
     public $videoFile = null;
+
     public $useVideoFile = false;
+
     public $currentVideoPath = null;
+
     public $appTheme = 'blue-theme';
+
+    public int $displayVideoVolumePercent = 0;
 
     public function mount()
     {
         $this->displayVideoUrl = SettingsModel::get('display_video_url', env('DISPLAY_VIDEO_URL', ''));
         $this->displayMarqueeText = SettingsModel::get('display_marquee_text', env('DISPLAY_MARQUEE_TEXT', 'Welcome to NORSU-GUIHULNGAN Queue System. Please wait for your number to be called.'));
         $this->currentVideoPath = SettingsModel::get('display_video_file', null);
-        $this->useVideoFile = !empty($this->currentVideoPath);
+        $this->useVideoFile = ! empty($this->currentVideoPath);
 
         $storedTheme = SettingsModel::get('app_theme', 'blue-theme');
         $this->appTheme = in_array($storedTheme, self::ALLOWED_THEMES, true)
             ? $storedTheme
             : 'blue-theme';
+
+        $vol = SettingsModel::get('display_video_volume_percent', 0);
+        $this->displayVideoVolumePercent = max(0, min(100, is_numeric($vol) ? (int) $vol : 0));
     }
 
     protected $rules = [
@@ -47,6 +58,7 @@ class Settings extends Component
         'displayMarqueeText' => 'required|string|max:500',
         'videoFile' => 'nullable|mimes:mp4,webm,ogg|max:3145728', // 3GB max (supports 18.6MB files)
         'appTheme' => 'required|in:blue-theme,light,dark,semi-dark,bodered-theme',
+        'displayVideoVolumePercent' => 'required|integer|min:0|max:100',
     ];
 
     public function save()
@@ -68,7 +80,7 @@ class Settings extends Component
         }
 
         // Save video URL (only if not using uploaded file)
-        if (!$this->useVideoFile) {
+        if (! $this->useVideoFile) {
             SettingsModel::set('display_video_url', $this->displayVideoUrl, 'url');
             // Clear video file if switching to URL
             if ($this->currentVideoPath && Storage::disk('public')->exists($this->currentVideoPath)) {
@@ -82,6 +94,10 @@ class Settings extends Component
         SettingsModel::set('display_marquee_text', $this->displayMarqueeText, 'text');
         SettingsModel::set('app_theme', $this->appTheme, 'text');
 
+        $vol = max(0, min(100, (int) $this->displayVideoVolumePercent));
+        SettingsModel::set('display_video_volume_percent', (string) $vol, 'integer');
+        event(new DisplayVideoVolumeUpdated($vol));
+
         $this->dispatch('toastr', ['type' => 'success', 'message' => 'Settings saved successfully!']);
     }
 
@@ -94,10 +110,20 @@ class Settings extends Component
         $this->currentVideoPath = null;
         $this->useVideoFile = false;
         $this->videoFile = null;
-        
+
         $this->dispatch('toastr', ['type' => 'success', 'message' => 'Video file deleted successfully!']);
     }
 
+    /**
+     * Persist and broadcast volume so display monitors update in real time (debounced on the client).
+     */
+    public function updatedDisplayVideoVolumePercent(mixed $value): void
+    {
+        $vol = max(0, min(100, (int) $value));
+        $this->displayVideoVolumePercent = $vol;
+        SettingsModel::set('display_video_volume_percent', (string) $vol, 'integer');
+        event(new DisplayVideoVolumeUpdated($vol));
+    }
 
     public function render()
     {

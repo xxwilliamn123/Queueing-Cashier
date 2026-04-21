@@ -182,6 +182,26 @@
                         @endif
                         @endif
                     </div>
+
+                    <div class="mt-3 pt-3 border-top border-secondary-subtle">
+                        <label for="displayVideoVolumePercent" class="form-label fw-bold mb-1">Display monitor video volume</label>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <input
+                                type="range"
+                                wire:model.live.debounce.350ms="displayVideoVolumePercent"
+                                min="0"
+                                max="100"
+                                step="1"
+                                class="form-range flex-grow-1"
+                                style="max-width: 22rem;"
+                                id="displayVideoVolumePercent">
+                            <span class="fw-semibold text-nowrap">{{ $displayVideoVolumePercent }}%</span>
+                        </div>
+                        @error('displayVideoVolumePercent')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                        <small class="text-secondary d-block mt-1">Used on the public display for YouTube and uploaded video (0% = silent, 100% = full). Adjusting the slider saves automatically and updates open display monitors in real time over the WebSocket. Some browsers only play sound after a click or tap on the page.</small>
+                    </div>
                 </div>
 
                 <!-- Save Button -->

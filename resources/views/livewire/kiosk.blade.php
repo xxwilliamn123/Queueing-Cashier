@@ -47,6 +47,7 @@
 
     <!-- Kiosk Interface - Only shown when key is verified -->
     @if($isKeyVerified)
+    <div class="kiosk-verified-wrap d-flex flex-column min-vh-100">
     <!-- Loading/Printing Overlay - Shows only when generateTicket is executing -->
     <div id="printingOverlay" 
          wire:ignore
@@ -64,7 +65,7 @@
         </div>
     </div>
 
-    <div class="container mt-4 mt-lg-5">
+    <div class="container mt-4 mt-lg-5 flex-grow-1">
         <div class="row justify-content-center">
             <div class="col-12 col-lg-11 col-xl-10">
                 <div class="card kiosk-main-card shadow-lg border-0">
@@ -72,8 +73,6 @@
                         <h2 class="mb-0 kiosk-title">NORSU-GUIHULNGAN CASHIER KIOSK</h2>
                     </div>
                     <div class="card-body p-4 p-lg-5">
-                        <h3 class="mb-4 kiosk-subtitle">Select Ticket Type</h3>
-                        
                         <div class="row g-4">
                             @foreach($categories as $category)
                                 <div class="col-md-6 col-lg-4" wire:key="category-{{ $category->id }}">
@@ -106,6 +105,13 @@
         </div>
     </div>
 
+    <footer class="kiosk-page-footer mt-auto w-100 bg-primary text-white text-center px-3" role="contentinfo">
+        <p class="mb-0 kiosk-footer-message">
+            PLEASE GET YOUR PRIORITY TICKET NUMBER HERE.
+        </p>
+    </footer>
+    </div>
+
     @push('styles')
         <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
         <style>
@@ -134,9 +140,26 @@
                 letter-spacing: 0.5px;
             }
 
-            .kiosk-subtitle {
-                font-size: clamp(1.5rem, 2.2vw, 2.1rem);
-                font-weight: 600;
+            .kiosk-page-footer {
+                border-top: 4px solid rgba(255, 255, 255, 0.35);
+                box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.12);
+                padding-top: 2.25rem !important;
+                padding-bottom: 2.25rem !important;
+            }
+
+            @media (min-width: 992px) {
+                .kiosk-page-footer {
+                    padding-top: 2.85rem !important;
+                    padding-bottom: 2.85rem !important;
+                }
+            }
+
+            .kiosk-footer-message {
+                font-size: 66px;
+                font-weight: 800 !important;
+                letter-spacing: 0.06em;
+                line-height: 1.2;
+                text-transform: uppercase;
             }
 
             .kiosk-category-btn {

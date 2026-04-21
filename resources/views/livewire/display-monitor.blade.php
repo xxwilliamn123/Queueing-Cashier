@@ -1,4 +1,4 @@
-<div class="display-monitor-container">
+<div class="display-monitor-container" wire:poll.60s="pollWaitingVoiceReminder" data-display-video-volume-percent="{{ (int) $displayVideoVolumePercent }}">
     <!-- Top Header -->
     <div class="top-header bg-black">
         <div class="container-fluid">
@@ -22,7 +22,8 @@
             <div class="row g-0 h-100 m-0">
                 <!-- Left Side - Queue Display -->
                 <div class="col-lg-5 col-md-12">
-                    <div class="queue-display bg-success h-100">
+                    <div class="queue-column d-flex flex-column h-100">
+                        <div class="queue-display bg-success queue-split-top">
                         <!-- Queue Headers -->
                         <div class="queue-headers bg-success text-white py-4">
                             <div class="row g-0 h-100">
@@ -90,6 +91,33 @@
                                 @endfor
                             @endif
                         </div>
+                        </div>
+
+                        <div class="waiting-tickets-panel queue-split-bottom text-white">
+                            <div class="waiting-tickets-header py-2 px-3 text-center border-bottom border-success border-2">
+                                <h3 class="mb-0 fw-bold waiting-header-text">WAITING TICKETS</h3>
+                            </div>
+                            <div class="waiting-tickets-body flex-grow-1">
+                                <div class="waiting-tickets-scale-outer">
+                                    @php
+                                        $waitingCount = count($upNext);
+                                        $waitingChipFontPx = match (true) {
+                                            $waitingCount <= 5 => 50,
+                                            $waitingCount <= 15 => 40,
+                                            $waitingCount < 20 => 30,
+                                            default => 24,
+                                        };
+                                    @endphp
+                                    <div class="waiting-tickets-scale-wrap" style="--waiting-ticket-chip-font-size: {{ $waitingChipFontPx }}px;">
+                                        @forelse($upNext as $waitingTicket)
+                                            <span class="waiting-ticket-chip fw-bold" data-waiting-code="{{ $waitingTicket->code }}">{{ $waitingTicket->code }}</span>
+                                        @empty
+                                            <span class="waiting-empty text-white-50 fw-semibold">—</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -101,6 +129,7 @@
                                 @if(strpos($videoUrl, 'youtube.com/embed/') !== false || strpos($videoUrl, 'youtube-nocookie.com/embed/') !== false)
                                     <!-- YouTube Embed -->
                                     <iframe 
+                                        id="display-monitor-youtube-iframe"
                                         src="{{ $videoUrl }}" 
                                         frameborder="0" 
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -113,6 +142,7 @@
                                 @else
                                     <!-- Uploaded Video File -->
                                     <video 
+                                        id="display-monitor-file-video"
                                         src="{{ $videoUrl }}" 
                                         autoplay 
                                         loop 
@@ -240,12 +270,92 @@
             flex-direction: column;
         }
 
+        /* Queue column: ~70% windows / ~30% waiting */
+        .queue-column {
+            min-height: 0;
+        }
+
+        .queue-split-top {
+            flex: 7 1 0;
+            min-height: 0;
+        }
+
+        .queue-split-bottom {
+            flex: 3 1 0;
+            min-height: 0;
+        }
+
         /* Queue Display (Left Side) */
         .queue-display {
             height: 100%;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+
+        .queue-display.queue-split-top {
+            height: auto;
+        }
+
+        .waiting-tickets-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0a0a0a !important;
+            border-top: 4px solid #28a745;
+        }
+
+        .waiting-header-text {
+            font-size: clamp(1rem, 2vw, 1.75rem) !important;
+            letter-spacing: 2px;
+            color: #28a745 !important;
+        }
+
+        .waiting-tickets-body {
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+            padding: 0.2rem 0.3rem;
+        }
+
+        .waiting-tickets-scale-outer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .waiting-tickets-scale-wrap {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            align-content: center;
+            gap: 0.3rem 0.45rem;
+            width: calc(100% - 4px);
+            max-width: calc(100% - 4px);
+            transform: translate(-50%, -50%) scale(1);
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        .waiting-ticket-chip {
+            font-size: var(--waiting-ticket-chip-font-size, clamp(0.65rem, 1.35vw, 1.35rem)) !important;
+            letter-spacing: 0.5px;
+            color: #ffffff !important;
+            padding: 0.2rem 0.45rem;
+            border: 1px solid rgba(40, 167, 69, 0.55);
+            border-radius: 6px;
+            background: rgba(40, 167, 69, 0.15);
+            line-height: 1.15;
+        }
+
+        .waiting-empty {
+            font-size: clamp(1rem, 2.2vw, 1.75rem) !important;
         }
 
         .queue-headers {
@@ -421,6 +531,28 @@
 
         // Enable fullscreen on user interaction (REQUIRED by browsers)
         let interactionHandlers = [];
+
+        function getDisplayVideoVolumePercent() {
+            const root = document.querySelector('.display-monitor-container');
+            if (!root || root.dataset.displayVideoVolumePercent === undefined || root.dataset.displayVideoVolumePercent === '') {
+                return 0;
+            }
+            const n = parseInt(root.dataset.displayVideoVolumePercent, 10);
+            if (Number.isNaN(n)) {
+                return 0;
+            }
+            return Math.max(0, Math.min(100, n));
+        }
+
+        window.unlockDisplayMonitorVideoAudio = function() {
+            const video = document.getElementById('display-monitor-file-video');
+            if (video) {
+                const pct = getDisplayVideoVolumePercent();
+                video.volume = pct / 100;
+                video.muted = false;
+            }
+            postYouTubeIframeVolume();
+        };
         
         function enableFullscreenOnInteraction() {
             // Remove existing handlers first
@@ -430,6 +562,9 @@
             interactionHandlers = [];
 
             const handler = function(e) {
+                if (window.unlockDisplayMonitorVideoAudio) {
+                    window.unlockDisplayMonitorVideoAudio();
+                }
                 // Only trigger on first interaction if not already in fullscreen
                 if (!isFullscreen()) {
                     requestFullscreen().then(success => {
@@ -502,6 +637,9 @@
         // Start the continuous monitor after initial fullscreen is achieved
         function onFullscreenEntered() {
             fullscreenEnabled = true;
+            if (window.unlockDisplayMonitorVideoAudio) {
+                window.unlockDisplayMonitorVideoAudio();
+            }
             // Start monitoring
             startFullscreenMonitor();
         }
@@ -680,28 +818,64 @@
                         }
                     }
                 })
-                // Listen for ticket completed - clear ticket display
+                // Listen for ticket completed / skipped - clear now serving
                 .listen('.ticket.completed', (e) => {
-                    if (e.ticket && e.ticket.teller) {
-                        // Clear ticket number for this teller immediately
-                        const tellerId = e.ticket.teller.id;
-                        const tellerRow = document.querySelector(`[data-teller-id="${tellerId}"]`);
-                        if (tellerRow) {
-                            const ticketElement = tellerRow.querySelector('.ticket-number');
-                            if (ticketElement) {
-                                ticketElement.textContent = '-';
-                                ticketElement.removeAttribute('data-ticket-code');
+                    const ticket = e.ticket;
+                    if (ticket) {
+                        const status = String(ticket.status || '').toLowerCase();
+                        if (status === 'done' || status === 'skipped') {
+                            const tellerId = (ticket.teller && ticket.teller.id) || ticket.teller_id;
+                            if (tellerId) {
+                                const tellerRow = document.querySelector(`.queue-rows [data-teller-id="${tellerId}"]`);
+                                if (tellerRow) {
+                                    const ticketElement = tellerRow.querySelector('.ticket-number');
+                                    if (ticketElement) {
+                                        ticketElement.textContent = '-';
+                                        ticketElement.removeAttribute('data-ticket-code');
+                                    }
+                                }
+                                lastImmediateUpdates.delete(tellerId);
+                            } else if (ticket.code) {
+                                const ticketEl = document.querySelector(`.queue-rows .ticket-number[data-ticket-code="${CSS.escape(ticket.code)}"]`);
+                                if (ticketEl) {
+                                    const row = ticketEl.closest('[data-teller-id]');
+                                    ticketEl.textContent = '-';
+                                    ticketEl.removeAttribute('data-ticket-code');
+                                    const tid = row && row.getAttribute('data-teller-id');
+                                    if (tid) {
+                                        lastImmediateUpdates.delete(tid);
+                                    }
+                                }
                             }
                         }
-                        
-                        // Remove from immediate updates tracking
-                        lastImmediateUpdates.delete(tellerId);
                     }
-                    
-                    // Trigger Livewire refresh in background
+
                     setTimeout(() => {
                         window.Livewire.dispatch('refresh-display');
                     }, 100);
+                })
+                .listen('.display.video.volume', (e) => {
+                    const payload = e && (Array.isArray(e) ? e[0] : e);
+                    let pct = payload && (payload.volumePercent ?? payload.volume_percent);
+                    if (pct === undefined || pct === null) {
+                        return;
+                    }
+                    pct = parseInt(pct, 10);
+                    if (Number.isNaN(pct)) {
+                        return;
+                    }
+                    pct = Math.max(0, Math.min(100, pct));
+                    const root = document.querySelector('.display-monitor-container');
+                    if (root) {
+                        root.dataset.displayVideoVolumePercent = String(pct);
+                    }
+                    if (typeof applyDisplayMonitorVideoVolume === 'function') {
+                        applyDisplayMonitorVideoVolume();
+                    }
+                    const video = document.getElementById('display-monitor-file-video');
+                    if (video && !video.muted) {
+                        video.volume = pct / 100;
+                    }
                 });
             } else {
                 if (!window.Echo) {
@@ -718,7 +892,30 @@
             initializeEchoListeners();
         }
 
-        document.addEventListener('livewire:init', initializeEchoListeners);
+        document.addEventListener('livewire:init', () => {
+            initializeEchoListeners();
+
+            Livewire.on('waiting-ticket-reminder', (event) => {
+                const payload = Array.isArray(event) ? event[0] : event;
+                const tickets = payload && (payload.tickets ?? payload['tickets']);
+                const code = payload && (payload.code ?? payload['code']);
+                if (Array.isArray(tickets) && tickets.length > 0) {
+                    if (window.announceWaitingTicketReminders) {
+                        window.announceWaitingTicketReminders(tickets);
+                    }
+                    if (window.blinkWaitingTicketReminders) {
+                        window.blinkWaitingTicketReminders(tickets, 8);
+                    }
+                } else if (code) {
+                    if (window.announceWaitingTicketReminder) {
+                        window.announceWaitingTicketReminder(String(code));
+                    }
+                    if (window.blinkWaitingTicketReminders) {
+                        window.blinkWaitingTicketReminders([{ code: String(code) }], 8);
+                    }
+                }
+            });
+        });
         
         // Store last immediate updates to preserve them through Livewire morphing
         let lastImmediateUpdates = new Map();
@@ -856,6 +1053,52 @@
 
         window.startBlinkAnimation = startBlinkAnimation;
 
+        window.blinkWaitingTicketReminders = function(tickets, times) {
+            if (!Array.isArray(tickets) || tickets.length === 0) {
+                return;
+            }
+
+            const blinkTimes = times !== undefined && times !== null ? times : 8;
+
+            const codes = tickets.map((t) => {
+                if (typeof t === 'string') {
+                    return t;
+                }
+                if (t && (t.code ?? t['code'])) {
+                    return String(t.code ?? t['code']);
+                }
+                return null;
+            }).filter(Boolean);
+
+            if (codes.length === 0) {
+                return;
+            }
+
+            const escapeAttr = (value) => (window.CSS && typeof CSS.escape === 'function')
+                ? CSS.escape(value)
+                : String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+            codes.forEach((ticketCode) => {
+                const selector = `.waiting-tickets-body .waiting-ticket-chip[data-waiting-code="${escapeAttr(ticketCode)}"]`;
+                let chip = document.querySelector(selector);
+                if (!chip) {
+                    setTimeout(() => {
+                        chip = document.querySelector(selector);
+                        if (chip) {
+                            startBlinkAnimation(chip, blinkTimes);
+                        }
+                    }, 50);
+                    return;
+                }
+                startBlinkAnimation(chip, blinkTimes);
+            });
+
+            const headerEl = document.querySelector('.waiting-tickets-header .waiting-header-text');
+            if (headerEl) {
+                startBlinkAnimation(headerEl, blinkTimes);
+            }
+        };
+
         // Text-to-Speech Functions
         let isAnnouncing = false;
 
@@ -929,17 +1172,17 @@
             speakAnnouncement(ticket, voices, voiceType, 'recalled');
         }
 
-        function speakAnnouncement(ticket, voices, voiceType, type) {
+        function pickAnnouncementVoice(voices, voiceType) {
             let selectedVoice = null;
             if (voiceType === 'male') {
-                selectedVoice = voices.find(v => 
+                selectedVoice = voices.find(v =>
                     v.name.toLowerCase().includes('male') ||
                     v.name.toLowerCase().includes('david') ||
                     v.name.toLowerCase().includes('mark') ||
                     (v.name.toLowerCase().includes('zira') === false && v.name.toLowerCase().includes('susan') === false)
                 ) || voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('zira'));
             } else {
-                selectedVoice = voices.find(v => 
+                selectedVoice = voices.find(v =>
                     v.name.toLowerCase().includes('female') ||
                     v.name.toLowerCase().includes('zira') ||
                     v.name.toLowerCase().includes('susan') ||
@@ -950,6 +1193,12 @@
             if (!selectedVoice) {
                 selectedVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
             }
+
+            return selectedVoice;
+        }
+
+        function speakAnnouncement(ticket, voices, voiceType, type) {
+            const selectedVoice = pickAnnouncementVoice(voices, voiceType);
 
             const ticketCode = ticket.code || 'Unknown';
             const counterName = ticket.teller?.counter_name || 'Counter';
@@ -983,6 +1232,102 @@
             };
         }
 
+        window.announceWaitingTicketReminders = function(tickets) {
+            if (isAnnouncing) {
+                return;
+            }
+
+            if (!Array.isArray(tickets) || tickets.length === 0) {
+                return;
+            }
+
+            const codes = tickets.map((t) => {
+                if (typeof t === 'string') {
+                    return t;
+                }
+                if (t && (t.code ?? t['code'])) {
+                    return String(t.code ?? t['code']);
+                }
+                return null;
+            }).filter(Boolean);
+
+            if (codes.length === 0) {
+                return;
+            }
+
+            if (!('speechSynthesis' in window)) {
+                return;
+            }
+
+            const voiceType = localStorage.getItem('tts_voice_type') || 'female';
+            const enabled = localStorage.getItem('tts_enabled') !== 'false';
+
+            if (!enabled) {
+                return;
+            }
+
+            isAnnouncing = true;
+
+            let voices = speechSynthesis.getVoices();
+
+            const speakChain = () => {
+                const selectedVoice = pickAnnouncementVoice(voices, voiceType);
+                let index = 0;
+
+                const speakNext = () => {
+                    if (index >= codes.length) {
+                        isAnnouncing = false;
+                        return;
+                    }
+
+                    const ticketCode = codes[index];
+                    index += 1;
+
+                    const utterance = new SpeechSynthesisUtterance(`Ticket ${ticketCode} is waiting?`);
+                    utterance.voice = selectedVoice;
+                    utterance.rate = 0.9;
+                    utterance.pitch = voiceType === 'male' ? 0.9 : 1.1;
+                    utterance.volume = 1.0;
+                    utterance.lang = 'en-US';
+
+                    utterance.onend = () => speakNext();
+                    utterance.onerror = () => {
+                        isAnnouncing = false;
+                    };
+
+                    if (index === 1) {
+                        speechSynthesis.cancel();
+                        setTimeout(() => {
+                            utterance.volume = 1.0;
+                            speechSynthesis.speak(utterance);
+                        }, 50);
+                    } else {
+                        speechSynthesis.speak(utterance);
+                    }
+                };
+
+                speakNext();
+            };
+
+            if (voices.length === 0) {
+                setTimeout(() => {
+                    voices = speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        speakChain();
+                    } else {
+                        isAnnouncing = false;
+                    }
+                }, 100);
+                return;
+            }
+
+            speakChain();
+        };
+
+        window.announceWaitingTicketReminder = function(ticketCode) {
+            window.announceWaitingTicketReminders([{ code: String(ticketCode) }]);
+        };
+
         // Load voices when available
         if ('speechSynthesis' in window) {
             if (speechSynthesis.onvoiceschanged !== undefined) {
@@ -990,6 +1335,124 @@
                     // Voices loaded
                 };
             }
+        }
+
+        // Scale waiting-ticket chips to fit the panel height (no vertical scroll)
+        let fitWaitingTicketsRaf = null;
+        let fitWaitingTicketsResizeTimer = null;
+
+        window.fitWaitingTicketsScale = function() {
+            const outer = document.querySelector('.waiting-tickets-scale-outer');
+            const wrap = document.querySelector('.waiting-tickets-scale-wrap');
+            if (!outer || !wrap) {
+                return;
+            }
+
+            wrap.style.transform = 'translate(-50%, -50%) scale(1)';
+
+            const bw = Math.max(1, outer.clientWidth);
+            const bh = Math.max(1, outer.clientHeight);
+
+            wrap.style.visibility = 'hidden';
+            wrap.style.pointerEvents = 'none';
+            wrap.style.width = bw + 'px';
+            wrap.style.maxWidth = bw + 'px';
+
+            const naturalW = Math.max(1, wrap.scrollWidth);
+            const naturalH = Math.max(1, wrap.scrollHeight);
+
+            wrap.style.visibility = '';
+            wrap.style.pointerEvents = '';
+            wrap.style.width = '';
+            wrap.style.maxWidth = '';
+
+            let scale = Math.min(1, bw / naturalW, bh / naturalH) * 0.98;
+            if (scale < 0.1) {
+                scale = 0.1;
+            }
+
+            wrap.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+        };
+
+        function scheduleFitWaitingTickets() {
+            if (fitWaitingTicketsRaf) {
+                cancelAnimationFrame(fitWaitingTicketsRaf);
+            }
+            fitWaitingTicketsRaf = requestAnimationFrame(() => {
+                fitWaitingTicketsRaf = requestAnimationFrame(() => {
+                    if (window.fitWaitingTicketsScale) {
+                        window.fitWaitingTicketsScale();
+                    }
+                    fitWaitingTicketsRaf = null;
+                });
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            clearTimeout(fitWaitingTicketsResizeTimer);
+            fitWaitingTicketsResizeTimer = setTimeout(scheduleFitWaitingTickets, 120);
+        });
+
+        function postYouTubeIframeVolume() {
+            const iframe = document.getElementById('display-monitor-youtube-iframe');
+            if (!iframe || !iframe.contentWindow) {
+                return;
+            }
+            try {
+                const send = (func, args) => {
+                    iframe.contentWindow.postMessage(JSON.stringify({
+                        event: 'command',
+                        func: func,
+                        args: args || [],
+                    }), '*');
+                };
+                const vol = getDisplayVideoVolumePercent();
+                send('setVolume', [vol]);
+                send('unMute', []);
+            } catch (e) {
+                // IFrame may not be ready yet
+            }
+        }
+
+        function applyDisplayMonitorVideoVolume() {
+            const video = document.getElementById('display-monitor-file-video');
+            if (video) {
+                const setVol = () => {
+                    video.volume = getDisplayVideoVolumePercent() / 100;
+                };
+                setVol();
+                video.addEventListener('loadedmetadata', setVol, { once: true });
+            }
+            postYouTubeIframeVolume();
+        }
+
+        window.applyDisplayMonitorVideoVolume = applyDisplayMonitorVideoVolume;
+
+        function setupDisplayMonitorYoutubeVolume() {
+            const iframe = document.getElementById('display-monitor-youtube-iframe');
+            if (!iframe) {
+                return;
+            }
+            iframe.addEventListener('load', () => {
+                [200, 600, 1500, 3000].forEach((ms) => setTimeout(postYouTubeIframeVolume, ms));
+            });
+            if (iframe.getAttribute('src')) {
+                [200, 600, 1500, 3000].forEach((ms) => setTimeout(postYouTubeIframeVolume, ms));
+            }
+        }
+
+        function initDisplayMonitorMediaLayout() {
+            scheduleFitWaitingTickets();
+            applyDisplayMonitorVideoVolume();
+            setupDisplayMonitorYoutubeVolume();
+        }
+
+        document.addEventListener('livewire:morph', initDisplayMonitorMediaLayout);
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDisplayMonitorMediaLayout);
+        } else {
+            initDisplayMonitorMediaLayout();
         }
     </script>
 @endpush

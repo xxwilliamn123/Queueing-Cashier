@@ -16,41 +16,60 @@ use Livewire\Component;
 class DisplayMonitor extends Component
 {
     public $activeTellers = [];
+
     public $upNext = [];
+
+    /**
+     * Per ticket type (category id): first waiting ticket today for that type, when an idle teller exists for that category.
+     *
+     * @var list<array{type: int, code: string}>
+     */
+    public array $waitingVoiceReminderTickets = [];
+
     #[Locked]
     public $marqueeText = '';
-    
+
     #[Locked]
     public $videoUrl = '';
 
     #[Locked]
     public $developerCredit = '';
 
+    /** Volume for display video: 0–100 (HTML5 `video.volume` and YouTube `setVolume`). */
+    public int $displayVideoVolumePercent = 0;
+
     public function mount()
     {
         // Get marquee text from settings (fallback to env, then default)
-        $this->marqueeText = Settings::get('display_marquee_text', 
+        $this->marqueeText = Settings::get('display_marquee_text',
             env('DISPLAY_MARQUEE_TEXT', 'Welcome to NORSU-GUIHULNGAN Queue System. Please wait for your number to be called.')
         );
         $this->developerCredit = $this->resolveDeveloperCredit();
 
         // Get video URL or file from settings
         $videoFile = Settings::get('display_video_file', null);
-        
+
         if ($videoFile && Storage::disk('public')->exists($videoFile)) {
             // Use uploaded video file - return direct URL (not embed format)
             $this->videoUrl = Storage::disk('public')->url($videoFile);
         } else {
             // Use video URL from settings (fallback to env)
             $rawVideoUrl = Settings::get('display_video_url', env('DISPLAY_VIDEO_URL', ''));
-            if (!empty($rawVideoUrl)) {
+            if (! empty($rawVideoUrl)) {
                 $this->videoUrl = $this->convertToEmbedUrl($rawVideoUrl);
             } else {
                 $this->videoUrl = '';
             }
         }
-        
+
         $this->loadDisplay();
+    }
+
+    private function refreshDisplayVideoVolumeFromSettings(): void
+    {
+        $raw = Settings::get('display_video_volume_percent', 0);
+        $n = is_numeric($raw) ? (int) $raw : 0;
+        $this->displayVideoVolumePercent = max(0, min(100, $n));
     }
 
     /**
@@ -66,14 +85,18 @@ class DisplayMonitor extends Component
             return '';
         }
 
-        // If already in embed format, return as is
-        if (strpos($url, 'youtube.com/embed/') !== false) {
+        // Already a YouTube embed URL: ensure IFrame API is enabled so the client can set volume from settings.
+        if (preg_match('#^(https?:)?//(www\.)?youtube(-nocookie)?\.com/embed/#i', $url)) {
+            if (stripos($url, 'enablejsapi=1') === false) {
+                return $url.(str_contains($url, '?') ? '&' : '?').'enablejsapi=1';
+            }
+
             return $url;
         }
 
         // Extract video ID from different YouTube URL formats
         $videoId = null;
-        
+
         // Format: https://www.youtube.com/watch?v=VIDEO_ID
         if (preg_match('/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
             $videoId = $matches[1];
@@ -91,7 +114,7 @@ class DisplayMonitor extends Component
             // Return embed URL with autoplay, loop, and mute parameters
             // Using youtube-nocookie.com for privacy and fewer tracking attempts
             // Additional parameters to reduce tracking and errors
-            return "https://www.youtube-nocookie.com/embed/{$videoId}?autoplay=1&loop=1&playlist={$videoId}&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=0";
+            return "https://www.youtube-nocookie.com/embed/{$videoId}?autoplay=1&loop=1&playlist={$videoId}&mute=1&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1";
         }
 
         // If we can't parse it, return empty (will show placeholder)
@@ -102,13 +125,12 @@ class DisplayMonitor extends Component
     {
         // Keep footer credit out of plain source text.
         $parts = [
-            '446576656c6f70656420756e646572207468652061646d696e697374726174696f6e206f662044722e205269636861726420422e204f73756d6f2c',
+            '446576656c6f70656420756e64657220746865206c656164657273686970206f662044722e205269636861726420422e204f73756d6f2c',
             '2043616d707573204469726563746f722c20616e6420486f6e2e204e6f656c204d61726a6f6e20452e20596173692c205073792e442e2c20556e697665727369747920507265736964656e742e',
         ];
 
         return implode('', array_map(static fn (string $hex): string => hex2bin($hex) ?: '', $parts));
     }
-
 
     // Listen for Livewire event dispatched from JavaScript
     #[On('refresh-display')]
@@ -123,32 +145,32 @@ class DisplayMonitor extends Component
     public function loadDisplay()
     {
         $today = Ticket::today();
-        
+
         // Cache active tellers for 2 minutes to reduce database load
         // But bypass cache when refresh-display is called (handled in handleRefreshDisplay)
-        $this->activeTellers = cache()->remember("active_tellers_{$today}", 120, function() use ($today) {
+        $this->activeTellers = cache()->remember("active_tellers_{$today}", 120, function () {
             // Get all active/online tellers (users with role 'teller' who have active sessions)
             // A teller is considered "active" if they have a session with last_activity within the last 30 minutes
             $activeThreshold = now()->subMinutes(30)->timestamp;
-            
+
             $activeTellerIds = DB::table('sessions')
                 ->where('user_id', '!=', null)
                 ->where('last_activity', '>=', $activeThreshold)
                 ->pluck('user_id')
                 ->unique()
                 ->toArray();
-            
+
             if (empty($activeTellerIds)) {
                 return [];
             }
-            
+
             // Get all tellers who are active/online
             $tellers = User::where('role', 'teller')
                 ->whereIn('id', $activeTellerIds)
                 ->with('category:id,name,prefix')
                 ->orderBy('counter_name', 'asc')
                 ->get();
-            
+
             // Get all serving tickets for these tellers in one query
             // Load category relationship so code accessor works properly
             $servingTickets = Ticket::forToday()
@@ -158,7 +180,7 @@ class DisplayMonitor extends Component
                 ->orderBy('updated_at', 'desc')
                 ->get()
                 ->groupBy('teller_id');
-            
+
             // Map tellers with their serving tickets
             return $tellers->map(function ($teller) use ($servingTickets) {
                 return [
@@ -173,8 +195,73 @@ class DisplayMonitor extends Component
             ->waiting()
             ->with('category:id,name,prefix')
             ->orderBy('id', 'asc')
-            ->take(10)
             ->get();
+
+        $this->waitingVoiceReminderTickets = $this->computeWaitingVoiceReminderTickets();
+
+        $this->refreshDisplayVideoVolumeFromSettings();
+    }
+
+    /**
+     * One reminder per queue: each distinct {@see Ticket::$type} with waiting tickets today gets the earliest waiting
+     * ticket for that type, but only if nobody from that line is currently being served (no serving row for that type).
+     * So P011 is not announced while P010 is still serving the same category.
+     *
+     * @return list<array{type: int, code: string}>
+     */
+    private function computeWaitingVoiceReminderTickets(): array
+    {
+        $typesWithServingToday = Ticket::forToday()
+            ->serving()
+            ->distinct()
+            ->pluck('type')
+            ->map(fn ($id) => (int) $id)
+            ->unique();
+
+        $waitingCategoryIds = Ticket::forToday()
+            ->waiting()
+            ->distinct()
+            ->pluck('type')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->reject(fn (int $type) => $typesWithServingToday->contains($type))
+            ->values();
+
+        if ($waitingCategoryIds->isEmpty()) {
+            return [];
+        }
+
+        $tickets = Ticket::forToday()
+            ->waiting()
+            ->whereIn('type', $waitingCategoryIds->all())
+            ->with('category:id,prefix')
+            ->orderBy('id')
+            ->get();
+
+        return $tickets
+            ->unique(fn (Ticket $ticket) => (int) $ticket->getRawOriginal('type'))
+            ->map(fn (Ticket $ticket) => [
+                'type' => (int) $ticket->getRawOriginal('type'),
+                'code' => $ticket->code,
+            ])
+            ->sortBy('type')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Re-evaluate waiting reminder and notify the browser (wire:poll every 60s).
+     */
+    public function pollWaitingVoiceReminder(): void
+    {
+        $this->refreshDisplayVideoVolumeFromSettings();
+
+        $tickets = $this->computeWaitingVoiceReminderTickets();
+        $this->waitingVoiceReminderTickets = $tickets;
+
+        if ($tickets !== []) {
+            $this->dispatch('waiting-ticket-reminder', tickets: $tickets);
+        }
     }
 
     public function render()

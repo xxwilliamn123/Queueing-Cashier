@@ -5,8 +5,6 @@ namespace App\Events;
 use App\Models\Ticket;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -44,14 +42,19 @@ class TicketCompleted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        // Ensure category is loaded for full_code
-        $this->ticket->load('category');
-        
+        $this->ticket->load(['category', 'teller']);
+
         return [
             'ticket' => [
                 'id' => $this->ticket->id,
                 'code' => $this->ticket->full_code,
                 'status' => $this->ticket->status,
+                'teller_id' => $this->ticket->teller_id,
+                'teller' => $this->ticket->teller ? [
+                    'id' => $this->ticket->teller->id,
+                    'name' => $this->ticket->teller->name,
+                    'counter_name' => $this->ticket->teller->counter_name,
+                ] : null,
             ],
         ];
     }
