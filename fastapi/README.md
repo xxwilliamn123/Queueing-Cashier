@@ -71,3 +71,8 @@ Body:
 ## Windows USB Driver Note
 
 For many POS58 USB printers on Windows, bind the printer device to WinUSB/libusb using Zadig.
+
+
+cd "c:\xampp\htdocs\Queueing Cashier\fastapi"
+.\.venv\Scripts\Activate.ps1
+uvicorn main:app --host 127.0.0.1 --port 8001 --reload

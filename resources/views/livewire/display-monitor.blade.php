@@ -46,9 +46,10 @@
                                     @php
                                         $teller = $tellerData['teller'];
                                         $ticket = $tellerData['ticket'] ?? null;
-                                        $counterName = $teller && $teller->counter_name ? $teller->counter_name : '-';
+                                        $tellerId = data_get($teller, 'id');
+                                        $counterName = data_get($teller, 'counter_name') ?: '-';
                                     @endphp
-                                    <div class="queue-row bg-success text-white border-bottom border-white border-1" data-teller-id="{{ $teller->id }}" data-counter-name="{{ $counterName }}">
+                                    <div class="queue-row bg-success text-white border-bottom border-white border-1" data-teller-id="{{ $tellerId }}" data-counter-name="{{ $counterName }}">
                                         <div class="row g-0 align-items-center">
                                             <div class="col-6 text-center border-end border-white border-2">
                                                 <span class="counter-number d-block">{{ $counterName }}</span>

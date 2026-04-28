@@ -187,7 +187,7 @@ class DisplayMonitor extends Component
                     'teller' => $teller,
                     'ticket' => $servingTickets->get($teller->id)?->first(),
                 ];
-            })->toArray();
+            })->values()->all();
         });
 
         // Get upcoming tickets

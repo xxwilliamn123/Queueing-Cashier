@@ -467,6 +467,26 @@
 
             // Category selection handled purely in JavaScript
             let selectedCategoryId = null;
+            let ticketModalAutoCloseTimeout = null;
+            let overlayFailSafeTimeout = null;
+
+            function scheduleTicketModalAutoClose() {
+                const modal = document.querySelector('#ticketModal');
+                if (!modal || modal.style.display === 'none') {
+                    return;
+                }
+
+                if (ticketModalAutoCloseTimeout) {
+                    return;
+                }
+
+                ticketModalAutoCloseTimeout = setTimeout(() => {
+                    const currentModal = document.querySelector('#ticketModal');
+                    if (currentModal && currentModal.style.display !== 'none') {
+                        window.closeModalInstantly();
+                    }
+                }, 5000);
+            }
 
             // Use event delegation for category buttons (works even after Livewire updates)
             // Define selectCategory first to ensure it's available
@@ -519,8 +539,22 @@
                         const livewireComponent = window.Livewire.find(componentId);
                         
                         if (livewireComponent) {
+                            if (overlayFailSafeTimeout) {
+                                clearTimeout(overlayFailSafeTimeout);
+                            }
+                            overlayFailSafeTimeout = setTimeout(() => {
+                                if (window.hidePrintingOverlay) {
+                                    window.hidePrintingOverlay();
+                                }
+                                resetGenerateButton();
+                            }, 8000);
+
                             livewireComponent.call('generateTicket', selectedCategoryId)
                                 .then(() => {
+                                    if (overlayFailSafeTimeout) {
+                                        clearTimeout(overlayFailSafeTimeout);
+                                        overlayFailSafeTimeout = null;
+                                    }
                                     // Hide overlay immediately when ticket is generated
                                     if (window.hidePrintingOverlay) {
                                         window.hidePrintingOverlay();
@@ -533,7 +567,12 @@
                                         }
                                     }, 200);
                                 })
-                                .catch(() => {
+                                .catch((error) => {
+                                    console.error('[Kiosk] generateTicket call failed:', error);
+                                    if (overlayFailSafeTimeout) {
+                                        clearTimeout(overlayFailSafeTimeout);
+                                        overlayFailSafeTimeout = null;
+                                    }
                                     // Hide overlay and re-enable button on error
                                     if (window.hidePrintingOverlay) {
                                         window.hidePrintingOverlay();
@@ -600,44 +639,25 @@
                 
                 Livewire.on('hide-printing-overlay', window.hidePrintingOverlay);
                 
-                // Handle ticket generation - hide overlay when modal appears
-                Livewire.hook('message.processed', (message) => {
-                    const isGenerateTicket = message.updateQueue?.some(update => 
-                        update.type === 'callMethod' && update.payload?.method === 'generateTicket'
-                    );
-                    
-                    if (isGenerateTicket) {
-                        // Hide overlay immediately
-                        if (window.hidePrintingOverlay) {
-                            window.hidePrintingOverlay();
-                        }
-                        
-                        // Also check after a short delay to ensure modal is rendered
-                        setTimeout(() => {
-                            const modal = document.querySelector('#ticketModal');
-                            if (modal) {
-                                // Modal is visible, definitely hide overlay
-                                if (window.hidePrintingOverlay) {
-                                    window.hidePrintingOverlay();
-                                }
-                            }
-                            // Reset selection and button state after ticket generation
-                            selectedCategoryId = null;
-                            updateCategoryButtons();
-                            resetGenerateButton();
-                        }, 150);
+                // Safer hook: on any processed Livewire update, ensure overlay state is corrected.
+                Livewire.hook('message.processed', () => {
+                    if (overlayFailSafeTimeout) {
+                        clearTimeout(overlayFailSafeTimeout);
+                        overlayFailSafeTimeout = null;
                     }
-                });
-                
-                // Also watch for DOM changes to detect modal appearance
-                Livewire.hook('morph.updated', () => {
+
+                    if (window.hidePrintingOverlay) {
+                        window.hidePrintingOverlay();
+                    }
+
                     const modal = document.querySelector('#ticketModal');
                     if (modal && modal.style.display !== 'none') {
-                        // Modal is visible, hide overlay
-                        if (window.hidePrintingOverlay) {
-                            window.hidePrintingOverlay();
-                        }
+                        scheduleTicketModalAutoClose();
                     }
+
+                    selectedCategoryId = null;
+                    updateCategoryButtons();
+                    resetGenerateButton();
                 });
                 
                 // Also listen for DOM updates
@@ -648,6 +668,7 @@
                         if (window.hidePrintingOverlay) {
                             window.hidePrintingOverlay();
                         }
+                        scheduleTicketModalAutoClose();
                     }
                     
                     // Check if modal was closed (modal element no longer exists)
@@ -666,11 +687,12 @@
                 // Watch for modal appearance using MutationObserver as backup
                 const observer = new MutationObserver(function(mutations) {
                     const modal = document.querySelector('#ticketModal');
-                    if (modal && modal.style.display !== 'none' && modal.offsetParent !== null) {
+                    if (modal && modal.style.display !== 'none') {
                         // Modal is visible, hide overlay
                         if (window.hidePrintingOverlay) {
                             window.hidePrintingOverlay();
                         }
+                        scheduleTicketModalAutoClose();
                     }
                 });
                 
@@ -680,9 +702,7 @@
                     if (targetNode) {
                         observer.observe(targetNode, {
                             childList: true,
-                            subtree: true,
-                            attributes: true,
-                            attributeFilter: ['style', 'class']
+                            subtree: true
                         });
                     }
                 }, 500);
@@ -746,6 +766,11 @@
 
             // Close modal instantly with JavaScript, then clean up Livewire state
             window.closeModalInstantly = function() {
+                if (ticketModalAutoCloseTimeout) {
+                    clearTimeout(ticketModalAutoCloseTimeout);
+                    ticketModalAutoCloseTimeout = null;
+                }
+
                 const modal = document.getElementById('ticketModal');
                 if (modal) {
                     // Hide modal instantly with CSS (no delay)
